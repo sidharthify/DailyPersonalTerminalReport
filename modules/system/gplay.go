@@ -2,6 +2,7 @@ package system
 
 import (
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"os"
@@ -39,7 +40,7 @@ func (GooglePlay) GetData(cfg map[string]any) []string {
 	bodyBytes, _ := io.ReadAll(resp.Body)
 	body := string(bodyBytes)
 
-	installsRe := regexp.MustCompile(`([0-9,]+\+)\s*Downloads`)
+	installsRe := regexp.MustCompile(`"([0-9,]+\+)",[0-9]+,[0-9]+,"[0-9A-Za-z\+\.]+"`)
 	matches := installsRe.FindStringSubmatch(body)
 	installs := "Unknown"
 	if len(matches) > 1 {
@@ -49,14 +50,21 @@ func (GooglePlay) GetData(cfg map[string]any) []string {
 		matches = jsRe.FindStringSubmatch(body)
 		if len(matches) > 1 {
 			installs = matches[1]
+		} else {
+		    // fallback check
+		    oldRe := regexp.MustCompile(`>([0-9,]+\+)<[^>]*>Downloads<`)
+		    matches = oldRe.FindStringSubmatch(body)
+		    if len(matches) > 1 {
+		        installs = matches[1]
+		    }
 		}
 	}
 
-	titleRe := regexp.MustCompile(`<h1 itemprop="name"[^>]*><span[^>]*>(.*?)</span></h1>`)
+	titleRe := regexp.MustCompile(`itemprop="name"[^>]*>(.*?)</span>`)
 	tMatch := titleRe.FindStringSubmatch(body)
 	title := "App"
 	if len(tMatch) > 1 {
-		title = tMatch[1]
+		title = html.UnescapeString(tMatch[1])
 	}
 
 	return []string{fmt.Sprintf("%s Downloads: %s", title, installs)}
