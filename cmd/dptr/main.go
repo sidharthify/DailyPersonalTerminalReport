@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/sidharthify/dptr/internal/config"
 	"github.com/sidharthify/dptr/internal/renderer"
@@ -76,25 +74,46 @@ func main() {
 
 	sections, quote := runner.RunModules(cfg, projectDir)
 
-	fmt.Print("\033[?1049h\033[H")
+	cmd := exec.Command("less", "-R", "-c")
 
+	// Create a pipe so we can write to less's stdin
+	r, w, err := os.Pipe()
+	if err == nil {
+		cmd.Stdin = r
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Start(); err == nil {
+			// Temporarily redirect os.Stdout to the pipe writer
+			oldStdout := os.Stdout
+			os.Stdout = w
+
+			renderer.RenderReport(
+				cfg.User.Name,
+				cfg.User.Greeting,
+				sections,
+				quote,
+			)
+
+			// Close the writer so less knows EOF is reached
+			w.Close()
+			os.Stdout = oldStdout
+
+			// Wait for the user to press 'q' to exit less
+			cmd.Wait()
+			return
+		}
+	}
+
+	// Fallback if less is not available or pipe fails
 	renderer.RenderReport(
 		cfg.User.Name,
 		cfg.User.Greeting,
 		sections,
 		quote,
 	)
-
-	fmt.Print("\n  Type !q to exit: ")
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		if strings.TrimSpace(scanner.Text()) == "!q" {
-			break
-		}
-		fmt.Print("\033[1A\033[2K  Type !q to exit: ")
-	}
-
-	fmt.Print("\033[?1049l")
+	fmt.Print("\nPress ENTER to close...")
+	fmt.Scanln()
 }
 
 func openInTerminal(term string, originalArgs []string) {
