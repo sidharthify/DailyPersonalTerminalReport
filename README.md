@@ -275,7 +275,17 @@ That is it. The engine discovers the module by filename and passes the `config` 
 
 ## Contributing
 
-If you make a custom module for your own needs, please be kind enough to make a Pull Request and help others out! Your contributions help keep the project diverse and useful for everyone.
+If you make a custom module for your own needs, please be kind enough to make a Pull Request and help others out!
+
+To maintain code quality, please follow these guidelines:
+
+- **Signed Commits**: All commits must be signed. Use `git commit -s`.
+- **Commit Format**: Use the format: `DPPR: [type]: [description]`
+  - Types: `fix`, `feat`, `chore`, `docs`, `refactor`, etc.
+  - Example: `DPPR: docs: add essentials module to catalog`
+  - Type is not strictly required, but use wherever possible.
+
+Your contributions help keep the project diverse and useful for everyone.
 
 ## License
 

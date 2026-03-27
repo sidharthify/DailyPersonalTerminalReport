@@ -92,7 +92,7 @@ def main():
     pdf_gen = PDFGenerator(config)
     pdf_path = os.path.join(script_dir, "daily_report.pdf")
     pdf_gen.generate(report_data, pdf_path, lyric=lyric)
-    print(f"✅ DPPR generated at: {pdf_path}")
+    print(f"DPPR generated at: {pdf_path}")
 
     if args.no_print:
         print("Skipping print due to --no-print flag.")
