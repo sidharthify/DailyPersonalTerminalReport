@@ -1,60 +1,59 @@
 # Configuration Guide
 
-DPPR is controlled by two main files: `config.yaml` for layout and settings, and `.env` for private credentials.
+DPTR is controlled entirely by `config.yaml`. There are no `.env` files — if a module requires a secret (like an API token or password), you can still export it in your environment (e.g., `EMAIL_PASSWORD=...`) or add it to your systemd service overrides.
 
-## config.yaml
+## config.yaml Structure
 
-The configuration is divided into three sections: `user`, `settings`, and `layout`.
+The configuration is divided into four main sections: `user`, `settings`, `wakeup`, and `layout`.
 
-### User Section
+### 1. User Section
+Basic personal details passed down to modules.
 - `name`: Your name as it appears in the greeting.
 - `greeting`: The greeting text (e.g., "Good Morning").
-- `lat` / `lon`: Your geographical coordinates (essential for weather and astronomy).
+- `lat` / `lon`: Your geographical coordinates (essential for weather, AQI, and astronomy).
 
-### Settings Section
-- `font`: The primary font name.
-- `master_currency`: The currency code (e.g., "USD", "INR") to which all financial data is converted.
-- `printing`: 
-  - `enabled`: Set to `true` to send the PDF to a printer.
-  - `cups_printer`: The name of your CUPS printer (optional).
+### 2. Settings Section
+Global settings.
+*(Note: `master_currency` used for finances is no longer needed since the finance modules were removed because of missing libraries in Go).*
 
-### Layout Section
-This is an ordered list of modules. Each entry needs:
-- `module`: The filename of the module (without `.py`).
-- `title`: The header text for that section in the report.
-- `config`: (Optional) Module-specific parameters like `count` or `symbols`.
+### 3. Wake-Up Section
+Controls when the report is actually displayed on login.
+- `enabled`: Set to `true` to use the guard. If `false`, the report displays on *every* invocation.
+- `min_gap_hours`: Minimum hours since the last report was shown (default: `6`).
+- `cutoff_hour`: The hour in 24h format after which the report won't show (e.g., `15` means 3:00 PM).
+- `terminal`: The terminal emulator to launch the report in (e.g., `kitty`, `alacritty`, `wezterm`, `gnome-terminal`).
+
+### 4. Layout Section
+An ordered list of modules to run concurrently. Each entry needs:
+- `module`: The internal name of the module (e.g., `weather`, `news`, `markets`).
+- `title`: The bold header text for that section in the terminal.
+- `config`: (Optional) Module-specific parameters like `count`, `symbols`, or `entities`.
+- `feeds`: (Specific to the `news` module) A list of predefined feeds, subreddits, or custom RSS URLs.
 
 ---
 
-## .env (Environment Variables)
+## Environment Variables for Secure Modules
 
-Never commit this file to version control. It stores your secrets:
+Some modules require authentication. DPTR reads these securely from your environment variables:
 
-### Home Assistant
+### Home Assistant (`ha` module)
 - `HA_URL`: The full API URL (e.g., `http://192.168.1.50:8123/api`).
 - `HA_ACCESS_TOKEN`: A Long-Lived Access Token created in your HA profile.
 
-### Email
+### Email Inbox (`email_inbox` module)
+- `EMAIL_HOST`: The IMAP server address (e.g., `imap.gmail.com`).
 - `EMAIL_USER`: Your full email address.
-- `EMAIL_PASS`: Your password or App Password (recommended for Gmail).
-- `EMAIL_HOST`: The IMAP server address.
+- `EMAIL_PASS`: Your password or App Password.
 
-### Actual Budget
-- `ACTUAL_SERVER_URL`: Your Actual Budget server URL.
-- `ACTUAL_PASSWORD`: Your login password.
-- `ACTUAL_SYNC_ID`: The "Sync ID" found in your budget settings.
-- `ACTUAL_ENCRYPTION_PASSWORD`: Your budget file's encryption password (optional).
-
-### Coordinates (Fallback)
-- `LAT`: Default latitude.
-- `LON`: Default longitude.
+### Google Play (`gplay` module)
+- `PACKAGE_NAME`: The Android package name to scrape (e.g., `com.example.app`). Can alternatively be set in `config.yaml`.
 
 ---
 
 ## JSON Data Files
 
-### holidays.json
-Used by the `calendar` module. A simple mapping of dates to names:
+### holidays.json (for `calendar`)
+Used by the `calendar` module. A simple mapping of `YYYY-MM-DD` to names. Keep this file in the directory you run the binary from, or use the `holidays_file` config option to point to an absolute path.
 ```json
 {
   "2026-01-01": "New Year's Day",
@@ -62,17 +61,13 @@ Used by the `calendar` module. A simple mapping of dates to names:
 }
 ```
 
-### quotes.json
-Used by the `quotes` module. A list of objects with text and attribution:
+### quotes.json (for `quotes`)
+Used by the `quotes` module. A list of objects with text and attribution.
 ```json
 [
   {
     "text": "The only way to do great work is to love what you do.",
     "attribution": "Steve Jobs"
-  },
-  {
-    "text": "Strive not to be a success, but rather to be of value.",
-    "attribution": "Albert Einstein"
   }
 ]
 ```

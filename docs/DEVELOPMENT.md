@@ -1,42 +1,89 @@
 # Development Guide
 
-DPPR is designed to be easily extensible. This guide outlines how to contribute new modules or modify the core engine.
+DPTR is built in pure Go and designed to be easily extensible. All modules are fetched concurrently via goroutines, meaning adding a slow module won't slow down the rest of the report.
 
-## Module Development
+## Directory Structure
 
-A module is simply a Python file in the `modules/` directory tree. It must have a `get_data(config)` function.
-
-### Step-by-Step
-
-1. **Create a file**: Place it in an existing category folder (e.g., `modules/custom/`) or create a new one.
-2. **Implement `get_data`**:
-   ```python
-   def get_data(config):
-       # Your data fetching logic
-       return ["Result 1", "Result 2"]
-   ```
-3. **Handle Errors**: Use `try-except` blocks and return a useful error message as a string in the list if things fail.
-4. **Avoid Hardcoding**: Use the `config` dictionary for any parameters.
-5. **Add to Layout**: Test your module by adding it to `config.yaml`.
-
-### Testing
-
-Run the script with the `--no-print` flag to verify the output:
-```bash
-python main.py --no-print
-```
-
-Check the `daily_report.pdf` to see how your module's lines look.
+- `cmd/dptr/` — Entry point (`main.go`).
+- `internal/config/` — YAML struct definitions.
+- `internal/wakeup/` — Wake-up guard logic and state management.
+- `internal/renderer/` — ANSI terminal renderer.
+- `internal/runner/` — Module orchestrator and parallel execution engine.
+- `modules/` — All module implementations organized by category.
 
 ---
 
-## Engine Development
+## Creating a New Module
 
-### pdf_generator.py
-This file handles the rendering of text. If you want to change:
-- **Font size or style**: Look in the `generate` function where `setFont` is called.
-- **Section spacing**: Adjust the `y` coordinate decrementing logic.
-- **Text cleaning**: The `_clean_text` method handles unicode normalization and character mapping.
+Adding a module is incredibly straightforward.
 
-### printer.py
-This is a small wrapper around the `pycups` library. It handles finding the default printer and sending the PDF job.
+### 1. Implement the Interface
+
+A module is any Go struct that implements the `runner.Module` interface:
+```go
+type Module interface {
+    GetData(cfg map[string]any) []string
+}
+```
+
+Create a new file in the appropriate directory (e.g., `modules/custom/my_module.go`):
+
+```go
+package custom
+
+import "fmt"
+
+type MyModule struct{}
+
+func (MyModule) GetData(cfg map[string]any) []string {
+    // Read config
+    name := "World"
+    if v, ok := cfg["name"].(string); ok {
+        name = v
+    }
+
+    // Fetch data via HTTP, DB, etc.
+    // Return a slice of strings (one per line rendered to the terminal)
+    return []string{
+        fmt.Sprintf("Hello, %s!", name),
+        "Data fetched successfully.",
+    }
+}
+```
+
+### 2. Register the Module
+
+Open `internal/runner/runner.go` and add your module to the `moduleFactory` switch statement:
+
+```go
+func moduleFactory(name string) Module {
+    switch name {
+    // ... existing modules ...
+    case "my_module":
+        return &custom.MyModule{}
+    default:
+        return nil
+    }
+}
+```
+
+### 3. Add to config.yaml
+
+```yaml
+  - module: "my_module"
+    title: "MY CUSTOM SECTION"
+    config:
+      name: "Sidharth"
+```
+
+---
+
+## Testing Your Changes
+
+Use the `--force` flag during development to completely bypass the wake-up guard time checks and render the output immediately inline:
+
+```bash
+go build ./cmd/dptr && ./dptr --force
+```
+
+If you modify configuration structs, be sure to update `internal/config/config.go`.

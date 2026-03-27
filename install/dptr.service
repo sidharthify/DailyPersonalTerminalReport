@@ -1,0 +1,15 @@
+[Unit]
+Description=DPTR — Daily Personal Terminal Report
+# Run after the graphical session is available
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+# Adjust the path to wherever you installed the dptr binary and config
+ExecStart=%h/.local/bin/dptr --config %h/.config/dptr/config.yaml --terminal
+# Allow plenty of time for API calls
+TimeoutStartSec=120
+
+[Install]
+WantedBy=graphical-session.target

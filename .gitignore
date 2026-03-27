@@ -33,3 +33,4 @@ daily_report.pdf
 *.swo
 .DS_Store
 Thumbs.db
+result/

@@ -1,204 +1,201 @@
-# DPPR: Daily Personal Printed Report
+# DPTR: Daily Personal Terminal Report
 
-A modular, configuration-driven Python system that generates a personalized daily briefing as a PDF and optionally prints it via CUPS. Every section of the report is a self-contained module that can be enabled, disabled, reordered, or swapped out entirely through a single YAML file.
+A modular, Go-native rewrite of [DPPR](https://github.com/FlashWreck/DPPR). Instead of printing a PDF, DPTR opens a terminal window with a richly formatted daily briefing whenever you log into your Linux PC after "waking up" (configurable time gap + hour cutoff).
 
-## Features
+## How the Wake-Up Guard Works
 
-- **Modular Architecture**: Add, remove, or reorder any section using `config.yaml`.
-- **Extensible Module System**: Easily write and plug in your own Python modules for custom data.
-- **Multi-OS Support**: Automatic font discovery for Linux, Windows, and macOS.
-- **Automated Printing**: Direct integration with CUPS for daily physical reports.
+DPTR runs on every graphical login via a **systemd user service**. Each time it runs it checks two conditions:
 
-## Why DPPR?
+1. **Time gap** - has it been at least `min_gap_hours` (default **6 h**) since the last report was shown?
+2. **Hour cutoff** - is the current time before `cutoff_hour` (default **15:00 / 3 PM**)?
 
-The inspiration for this project came from a Reddit post where someone was printing their daily reports using a thermal receipt printer. That sparked the idea for a similar, but more comprehensive system that works with any regular home printer.
+If both are satisfied, the report opens in your terminal emulator. Both thresholds are fully configurable in `config.yaml`.
 
-The goal of DPPR is to provide a curated, physical report to start your morning. Instead of immediately diving into your phone and getting lost in notifications, you can sit down with a cup of coffee and read a one-page summary of everything that matters to you: your local weather, the latest news, your financial portfolios, and your own server's health. It's about taking back the first few minutes of your day with a focused, reading experience.
-
-The system is built around three core ideas:
-
-1. **Modules** are small, independent Python files that each fetch one type of data.
-2. **Layout** is defined in `config.yaml`, which controls the order and configuration of modules.
-3. **The Engine** takes module output and renders it into a formatted PDF.
+State is stored in `~/.local/share/dptr/last_run` (a Unix timestamp).
 
 ---
 
-## 📚 Documentation
+## Features
 
-For complete setup and configuration details, please see our guides:
+- **Pure Go binary** - single static executable, zero Python, zero runtime deps
+- **Parallel module fetching** - all sections fetched concurrently via goroutines
+- **ANSI terminal rendering** - coloured headers, word-wrap, section separators
+- **Configurable wake-up logic** - gap hours, hour cutoff, custom terminal emulator
+- **20+ built-in modules** - weather, stocks, crypto, HN, RSS, AQI, and more
+- **NixOS-ready** - includes `shell.nix` and install script that auto-detects nix
 
-*   [Getting Started](docs/GETTING_STARTED.md) - Installation and OS-specific requirements.
-*   [Configuration Guide](docs/CONFIGURATION.md) - Deep dive into `config.yaml` and `.env`.
-*   [Module Catalog](docs/MODULES.md) - Full list of all available modules and their options.
-*   [Development Guide](docs/DEVELOPMENT.md) - How to write your own custom modules.
+---
 
 ## Project Structure
 
 ```
-DPPR/
-├── main.py                  Entry point, loads config and runs modules
-├── config.yaml              Your personal configuration (gitignored)
-├── config.template.yaml     Reference config with all available options
-├── .env                     API keys and credentials (gitignored)
-├── requirements.txt         Python dependencies
-├── holidays.json            Custom holiday dates (gitignored)
-├── quotes.json              Custom quotes/lyrics for the footer (gitignored)
-├── signature.png            Optional signature image (gitignored)
+DPTR/
+├── cmd/dptr/main.go              Entry point
+├── config.yaml                   Your personal config (gitignored)
+├── config.template.yaml          Reference config
+├── shell.nix                     NixOS dev shell
+├── go.mod / go.sum
 │
-├── engine/
-│   ├── pdf_generator.py     Renders report data into a PDF
-│   └── printer.py           Sends the PDF to a CUPS printer
+├── internal/
+│   ├── config/config.go          YAML config loader
+│   ├── wakeup/wakeup.go          Wake-up guard (state file + time checks)
+│   ├── renderer/renderer.go      ANSI terminal renderer
+│   └── runner/runner.go          Parallel module orchestrator
 │
-└── modules/
-    ├── environment/
-    │   ├── weather/weather.py       Current weather via Open-Meteo
-    │   ├── astronomy.py             Sunrise and sunset times
-    │   └── aqi/
-    │       ├── openmeteo.py         US AQI via Open-Meteo (Global)
-    │       └── breatheoss.py        US AQI via BreatheOSS (Jammu and Kashmir, India)
-    │
-    ├── news/
-    │   ├── news.py                  RSS/Atom feed aggregator with Reddit support
-    │   ├── hacker_news.py           Top stories from Hacker News
-    │   └── github_trending.py       Trending GitHub repositories
-    │
-    ├── finances/
-    │   ├── exchange_rate.py         Forex rates
-    │   ├── markets.py               Stock prices via Yahoo Finance
-    │   ├── crypto.py                Crypto prices via CoinGecko
-    │   ├── commodities.py           Gold, Silver, Oil via Yahoo Finance
-    │   ├── actual.py                Bank balances via Actual Budget
-    │   └── currency_util.py         Shared currency conversion helpers
-    │
-    ├── planning/
-    │   └── calendar.py              Upcoming holidays and next Sunday
-    │
-    ├── home_automation/
-    │   └── ha.py                    Entity states from Home Assistant
-    │
-    ├── communication/
-    │   └── email_inbox.py           Recent emails via IMAP
-    │
-    ├── android/
-    │   └── gplay.py                 Google Play download stats
-    │
-    ├── knowledge/
-    │   └── fact_of_the_day.py       Daily fact from Useless Facts API
-    │
-    ├── social/
-    │   └── shower_thoughts.py       Top posts from r/ShowerThoughts
-    │
-    ├── random/
-    │   ├── word_of_the_day.py       Word of the Day from Merriam-Webster
-    │   ├── daily_joke.py            Dad joke from icanhazdadjoke
-    │   └── quotes.py                Random quote/lyric for the footer
-    │
-    ├── system/
-    │   └── system.py                Disk, RAM, and CPU stats
-    │
-    └── essentials/
-        └── essentials.py            Static confirmation line
+├── modules/
+│   ├── environment/              Weather, Astronomy, AQI (Open-Meteo, BreatheOSS)
+│   ├── news/                     Hacker News, GitHub Trending, RSS/Atom feeds
+│   ├── finances/                 Exchange rate, Stocks, Crypto, Commodities
+│   ├── planning/                 Calendar (holidays.json)
+│   ├── system/                   Disk / RAM / CPU stats
+│   └── random/                   Joke, Fact, Shower Thoughts, Word of Day, Quotes
+│
+└── install/
+    ├── dptr.service              Systemd user service
+    └── install.sh                Build + install script
 ```
 
-## How Modules Work
+---
 
-Every module is a Python file inside `modules/` that exposes a single function:
+## Documentation
 
-```python
-def get_data(config):
-    return ["Line 1", "Line 2", "Line 3"]
+For more detailed information, please refer to the documents in the `docs/` folder:
+- **[Getting Started](docs/GETTING_STARTED.md)**: Detailed setup and installation instructions.
+- **[Configuration](docs/CONFIGURATION.md)**: Full config.yaml and environment variable options.
+- **[Modules](docs/MODULES.md)**: Complete catalog of all available modules.
+- **[Development](docs/DEVELOPMENT.md)**: Guide on how to write new Go modules for DPTR.
+
+---
+
+## Build & Run
+
+### NixOS (flakes)
+
+```bash
+# Run directly without installing
+nix run github:sidharthify/dptr -- --force --config config.yaml
+
+# Or build it locally
+nix build .
+./result/bin/dptr --force --config config.yaml
+
+# Or open the dev shell
+nix develop
+go build ./cmd/dptr
 ```
 
-- `config` is a dictionary passed from the module's entry in `config.yaml`.
-- The function returns a list of strings. Each string becomes one line in the report.
-- The engine handles text wrapping, encoding, and page breaks automatically.
+### NixOS (legacy nix-shell)
 
-Modules are discovered by filename. If you create `modules/custom/my_thing.py`, you reference it in the layout as `module: "my_thing"`. The engine walks the `modules/` directory tree to find it.
+```bash
+# One-time build
+nix-shell -p go --run "go build ./cmd/dptr"
 
-### The `quotes` Module
+# Or use the dev shell
+nix-shell
+go build ./cmd/dptr
+```
 
-The `quotes` module is special. Instead of appearing in the report body, its output is rendered as a footer quote at the bottom of the page. It does not need a `title` in the layout.
+### With Go installed globally
+
+```bash
+go build ./cmd/dptr
+```
+
+### Run
+
+```bash
+./dptr --force --config config.yaml      # Show report regardless of wake-up guard
+./dptr --test-wakeup --config config.yaml  # Print guard status and exit
+./dptr --config config.yaml              # Normal run (guard applies)
+```
+
+---
 
 ## Setup
 
-### 1. Clone and Install
-
-```bash
-git clone https://github.com/FlashWreck/DPPR && cd DPPR
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 2. Configure
+### 1. Configure
 
 ```bash
 cp config.template.yaml config.yaml
 ```
 
-Edit `config.yaml` to:
-- Set your `name` and `greeting` under `user`.
-- Set your `lat` and `lon` under `user` (used by weather, AQI, and astronomy modules).
-- Set `master_currency` under `settings` to auto-convert all financial data.
-- Add, remove, or reorder modules in the `layout` list.
+Edit `config.yaml`:
+- Set `user.name` and `user.greeting`
+- Set `user.lat` / `user.lon` (for weather, AQI, astronomy)
+- Set `settings.master_currency` (all finance modules auto-convert)
+- Tune `wakeup.min_gap_hours`, `wakeup.cutoff_hour`, `wakeup.terminal`
+- Enable/disable/reorder modules in `layout`
 
-### 3. Environment Variables
+### 2. Wake-Up Settings
 
-Create a `.env` file for credentials that should not live in the config:
-
-```env
-EMAIL_USER=you@gmail.com
-EMAIL_PASS=your_app_password
-EMAIL_HOST=imap.gmail.com
-HA_URL=http://homeassistant.local:8123
-HA_ACCESS_TOKEN=your_long_lived_token
-ACTUAL_SERVER_URL=https://actual.example.com
-ACTUAL_PASSWORD=your_password
-ACTUAL_SYNC_ID=your_sync_id
-ACTUAL_ENCRYPTION_PASSWORD=optional
-PACKAGE_NAME=com.example.app
+```yaml
+wakeup:
+  enabled: true
+  min_gap_hours: 6      # Minimum hours since last report
+  cutoff_hour: 15       # Don't show at or after this hour (24h, 15 = 3 PM)
+  terminal: "kitty"     # kitty | alacritty | gnome-terminal | xterm | konsole | wezterm
 ```
 
-Only the modules you enable need their corresponding variables. Unused modules will not throw errors for missing credentials.
-
-### 4. Optional Files
+### 3. Optional Files
 
 | File | Purpose |
-| :--- | :--- |
-| `holidays.json` | A `{"YYYY-MM-DD": "Name"}` mapping of holidays for the calendar module |
-| `quotes.json` | A list of `{"text": "...", "attribution": "..."}` objects for the footer |
-| `signature.png` | An image rendered in the bottom-right corner of the report |
+|---|---|
+| `holidays.json` | `{"YYYY-MM-DD": "Name"}` - used by the calendar module |
+| `quotes.json` | `[{"text": "...", "attribution": "..."}]` - random footer quote |
 
-### 5. Fonts
-
-The PDF generator looks for JetBrains Mono in standard font directories across Linux, Windows, and macOS. If not found, it falls back to Courier. To install JetBrains Mono:
-
-- **Linux**: `sudo pacman -S ttf-jetbrains-mono` or `sudo apt install fonts-jetbrains-mono`
-- **macOS**: `brew install --cask font-jetbrains-mono`
-- **Windows**: Download from [JetBrains](https://www.jetbrains.com/lp/mono/) and install to `C:\Windows\Fonts`
-
-### 6. Run
+### 4. Install (systemd autostart)
 
 ```bash
-python main.py              # Generate PDF and print
-python main.py --no-print   # Generate PDF only
+chmod +x install/install.sh
+./install/install.sh
 ```
 
-The output is saved to `daily_report.pdf` in the project root.
+This will:
+- Build the binary → `~/.local/bin/dptr`
+- Copy config template → `~/.config/dptr/config.yaml`
+- Enable the systemd user service (auto-runs on graphical login)
 
-## Predefined News Feeds
+---
 
-The `news` module ships with a built-in directory of RSS feeds. Use these keys in your config instead of raw URLs:
+## Modules
+
+| Module key | Description |
+|---|---|
+| `weather` | Temperature, humidity, wind (Open-Meteo) |
+| `astronomy` | Sunrise / sunset (Open-Meteo) |
+| `openmeteo` | US AQI, PM2.5, PM10 (Open-Meteo Air Quality) |
+| `breatheoss` | AQI for Jammu & Kashmir cities (BreatheOSS) |
+| `news` | RSS/Atom feeds, Reddit, and 25+ predefined sources |
+| `hacker_news` | Top HN stories with score |
+| `github_trending` | GitHub repos trending this week |
+| `calendar` | Next holiday + days until next Sunday |
+| `system` | Disk, RAM, CPU usage, CPU temp, uptime |
+| `ha` | Home Assistant entities |
+| `email_inbox` | Unread emails via IMAP |
+| `gplay` | Google Play Scraper installs |
+| `daily_joke` | Random dad joke (icanhazdadjoke) |
+| `fact_of_the_day` | Random fact (uselessfacts.jsph.pl) |
+| `shower_thoughts` | Top daily posts from r/showerthoughts |
+| `word_of_the_day` | Word + definition (daily rotation) |
+| `quotes` | Random quote from `quotes.json` (footer) |
+| `essentials` | Static confirmation line |
+
+> **Note**: The Finances block (stocks, crypto, forex, actual budget) has been removed because of missing libraries in Go.
+
+### Predefined RSS Feeds
+
+Use these keys in the `news` module feeds list:
 
 | Region | Keys |
-| :--- | :--- |
-| Global | `bbc`, `aljazeera`, `reuters`, `ap`, `npr`, `nyt` |
+|---|---|
+| Global | `bbc`, `aljazeera`, `ap`, `npr`, `nyt` |
 | Europe | `dw`, `france24`, `euronews`, `guardian` |
-| Asia | `cna`, `bangkokpost`, `hindu`, `toi`, `ndtv`, `yourstory`, `scmp`, `technode`, `caixin` |
+| Asia | `cna`, `hindu`, `toi`, `ndtv`, `scmp`, `yourstory`, `technode` |
 | Oceania | `abc_au`, `rnz` |
-| Latin America | `mercopress`, `batimes` |
-| Tech | `techcrunch`, `verge`, `wired`, `arstechnica`, `theregister`, `hackernews`, `noted`, `selfh_st` |
+| LatAm | `mercopress`, `batimes` |
+| Tech | `techcrunch`, `verge`, `theverge`, `wired`, `arstechnica`, `theregister`, `noted`, `selfh_st` |
 
-You can also pull from any subreddit:
+Or use any subreddit or custom URL:
 
 ```yaml
 - module: "news"
@@ -206,86 +203,11 @@ You can also pull from any subreddit:
   feeds:
     - subreddit: "selfhosted"
       count: 3
-    - subreddit: "linux"
-      count: 2
-```
-
-**Custom RSS/Atom Feeds**:
-You can also add any custom RSS or Atom feed URL in the news module:
-
-```yaml
-- module: "news"
-  title: "CUSTOM FEED"
-  feeds:
     - url: "https://example.com/feed.xml"
       count: 2
 ```
 
-## Currency Conversion
-
-All financial modules (stocks, crypto, commodities) support automatic currency conversion. Set `master_currency` in `settings` and every price will be converted from its native currency:
-
-```yaml
-settings:
-  master_currency: "INR"
-```
-
-Conversion rates are fetched live from Yahoo Finance.
-
-## Printing
-
-DPPR integrates with CUPS for automated printing. Enable it in `config.yaml`:
-
-```yaml
-settings:
-  printing:
-    enabled: true
-    cups_printer: "HP_LaserJet"
-```
-
-If `cups_printer` is not set, it defaults to the first available printer. Requires `pycups` (`pip install pycups`) and a working CUPS setup on the host.
-
-## Writing a Custom Module
-
-1. Create a file anywhere inside `modules/`, e.g. `modules/custom/uptime.py`.
-2. Implement `get_data(config)`:
-
-```python
-import requests
-
-def get_data(config):
-    url = config.get('url')
-    try:
-        resp = requests.get(url, timeout=5)
-        return [f"Status: {resp.status_code}"]
-    except Exception as e:
-        return [f"Error: {e}"]
-```
-
-3. Add it to your layout:
-
-```yaml
-- module: "uptime"
-  title: "UPTIME CHECK"
-  config:
-    url: "https://example.com"
-```
-
-That is it. The engine discovers the module by filename and passes the `config` block to `get_data()`.
-
-## Contributing
-
-If you make a custom module for your own needs, please be kind enough to make a Pull Request and help others out!
-
-To maintain code quality, please follow these guidelines:
-
-- **Signed Commits**: All commits must be signed. Use `git commit -s`.
-- **Commit Format**: Use the format: `DPPR: [type]: [description]`
-  - Types: `fix`, `feat`, `chore`, `docs`, `refactor`, etc.
-  - Example: `DPPR: docs: add essentials module to catalog`
-  - Type is not strictly required, but use wherever possible.
-
-Your contributions help keep the project diverse and useful for everyone.
+---
 
 ## License
 

@@ -1,23 +1,24 @@
-# DPPR Configuration Template
-# Copy this to config.yaml and customize
+# DPTR Configuration Template
+# Copy this to config.yaml and customise.
 
 user:
   name: "Your Name"
   greeting: "Good Morning"
+  lat: null   # Your latitude  (used by weather, astronomy, AQI modules)
+  lon: null   # Your longitude
+
+# Wake-up detection settings
+wakeup:
+  enabled: true
+  min_gap_hours: 6    # Minimum hours since last report before showing again
+  cutoff_hour: 15     # Don't show after this hour (24-h, 15 = 3 PM)
+  terminal: "kitty"   # Terminal emulator: kitty | alacritty | gnome-terminal | xterm | konsole | wezterm
 
 # Global settings
 settings:
-  font: "Courier" # Falls back to JetBrains Mono if installed
-  font_bold: "Courier-Bold"
-  page_size: "A4"
-  master_currency: "USD" # All financial modules will convert to this currency
-  qr_data: "https://yourwebsite.com"
-  signature_path: "signature.png"
-  printing:
-    enabled: false # Set to true to enable CUPS printing
-    cups_printer: null # Set to specific printer name or null for default
+  master_currency: "USD"  # All financial modules convert to this currency
 
-# Report layout (sequence of modules)
+# Report layout — add, remove, or reorder any section.
 layout:
   - module: "weather"
     title: "WEATHER"
@@ -40,7 +41,7 @@ layout:
   - module: "breatheoss"
     title: "AIR QUALITY (Jammu & Kashmir)"
     config:
-      city: "Srinagar" # e.g. Srinagar, Jammu_City, Anantnag_City
+      city: "Srinagar"
 
   - module: "news"
     title: "TECH FEEDS"
@@ -59,33 +60,7 @@ layout:
     title: "GITHUB TRENDING"
     config:
       count: 3
-      language: "python" # e.g. python, javascript, go
-
-  - module: "exchange_rate"
-    title: "FOREX"
-    config:
-      base_currency: "USD"
-      target_currency: "EUR"
-
-  - module: "markets"
-    title: "STOCK MARKET"
-    config:
-      symbols: ["AAPL", "MSFT", "NVDA"]
-
-  - module: "crypto"
-    title: "CRYPTOCURRENCY"
-    config:
-      tokens: ["bitcoin", "ethereum", "solana"]
-
-  - module: "commodities"
-    title: "COMMODITIES"
-    config:
-      symbols: ["GC=F", "CL=F", "BZ=F"] # Gold, Crude Oil, Brent
-
-  - module: "actual"
-    title: "BANK BALANCES (Actual Budget)"
-    config:
-      main_account_match: "Main Bank Name"
+      language: "python"
 
   - module: "calendar"
     title: "CALENDAR"
@@ -93,7 +68,7 @@ layout:
       holidays_file: "holidays.json"
 
   - module: "system"
-    title: "SERVER PERFORMANCE"
+    title: "SYSTEM STATS"
     config:
       disks:
         - path: "/"
@@ -105,15 +80,13 @@ layout:
       entities:
         - entity_id: "sensor.processor_temperature"
           label: "CPU Temp"
-        - entity_id: "sensor.processor_use"
-          label: "CPU Usage"
 
   - module: "word_of_the_day"
     title: "WORD OF THE DAY"
 
   - module: "daily_joke"
     title: "DAILY JOKE"
-    
+
   - module: "fact_of_the_day"
     title: "FACT OF THE DAY"
 
@@ -121,7 +94,6 @@ layout:
     title: "SHOWER THOUGHTS"
     config:
       count: 3
-
 
   - module: "email_inbox"
     title: "RECENT EMAILS"

@@ -1,67 +1,75 @@
 # Getting Started
 
-Welcome to DPPR (Daily Personal Printed Report). This guide will help you get the system running on your local machine or server.
+Welcome to **DPTR (Daily Personal Terminal Report)** — a modular, pure Go system that opens a terminal window with a richly formatted daily briefing when you log into your Linux PC.
+
+This completely replaces the older Python/PDF-based `DPPR`.
 
 ## Prerequisites
 
-- **Python 3.8+**
-- **pip** (Python package installer)
-- **CUPS** (If you want to use the automated printing feature)
+- **Go 1.21+** (if compiling manually)
+- **Nix** (optional, but highly recommended for NixOS users)
+- A supported terminal emulator (kitty, alacritty, gnome-terminal, etc.)
 
 ## Installation
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/FlashWreck/DPPR
-   cd DPPR
-   ```
+### Method 1: Nix Flakes (Recommended for Nix users)
 
-2. **Create a virtual environment**:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## OS-Specific Requirements
-
-### Linux (Ubuntu/Debian)
-If you plan to use printing, you may need the CUPS development headers:
+You can run DPTR directly via flakes without installing it permanently:
 ```bash
-sudo apt install libcups2-dev
-```
-For the JetBrains Mono font:
-```bash
-sudo apt install fonts-jetbrains-mono
+nix run github:sidharthify/dptr -- --force --config config.yaml
 ```
 
-### macOS
-For the JetBrains Mono font:
+To install or build locally:
 ```bash
-brew install --cask font-jetbrains-mono
+git clone https://github.com/sidharthify/dptr
+cd dptr
+nix build .
+
+# The binary is now in result/bin/dptr
+./result/bin/dptr --force --config config.template.yaml
 ```
 
-### Windows
-Download the JetBrains Mono font from the [official website](https://www.jetbrains.com/lp/mono/) and install it system-wide.
+### Method 2: Standard Go Build
 
-## Your First Run
+```bash
+git clone https://github.com/sidharthify/dptr
+cd dptr
+go build ./cmd/dptr
 
-1. Copy the template config:
+# The binary is created as ./dptr
+./dptr --force --config config.template.yaml
+```
+
+## Systemd Auto-Start Setup
+
+To have DPTR automatically show up when you wake up and log into your PC:
+
+1. Copy the reference config:
    ```bash
    cp config.template.yaml config.yaml
    ```
-2. Run a dry-run to see if the PDF generates correctly:
+2. Edit `config.yaml` to your liking (add your coordinates, feeds, preferred terminal).
+3. Run the installer:
    ```bash
-   python main.py --no-print
+   chmod +x install/install.sh
+   ./install/install.sh
    ```
-3. Check `daily_report.pdf` in the project root.
+
+The installer builds the binary, places it in `~/.local/bin/dptr`, copies your config to `~/.config/dptr/config.yaml`, and enables a systemd user service (`dptr.service`) that triggers on graphical login.
+
+## Your First Run
+
+Run a dry-run to see your DPTR layout immediately, bypassing the wake-up guard:
+```bash
+./dptr --force --config config.yaml
+```
+
+To check how the wake-up guard is currently evaluating:
+```bash
+./dptr --test-wakeup --config config.yaml
+```
 
 ## Troubleshooting
 
-- **Font not found**: If the PDF looks like standard Courier, ensures JetBrains Mono is installed in a standard system directory.
-- **ImportError (pycups)**: This usually happens if the CUPS development libraries are missing on Linux. If you do not need printing, you can ignore this and use `--no-print`.
-- **API Errors**: Check your `.env` file credentials.
+- **Report doesn't show on login?**: The wake-up guard might be preventing it if you already logged in recently or it's past your cutoff hour. Check `systemctl --user status dptr.service` or run `dptr --test-wakeup`.
+- **Command missing?**: Ensure `~/.local/bin` is in your `$PATH`.
