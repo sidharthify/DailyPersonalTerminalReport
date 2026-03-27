@@ -1,0 +1,139 @@
+# DPPR Configuration Template
+# Copy this to config.yaml and customize
+
+user:
+  name: "Your Name"
+  greeting: "Good Morning"
+
+# Global settings
+settings:
+  font: "Courier" # Falls back to JetBrains Mono if installed
+  font_bold: "Courier-Bold"
+  page_size: "A4"
+  master_currency: "USD" # All financial modules will convert to this
+  qr_data: "https://yourwebsite.com"
+  signature_path: "signature.png"
+  printing:
+    enabled: false # Set to true to enable CUPS printing
+    cups_printer: null # Set to specific printer name or null for default
+
+# Report layout (sequence of modules)
+layout:
+  - module: "weather"
+    title: "WEATHER"
+    config:
+      lat: null
+      lon: null
+
+  - module: "astronomy"
+    title: "ASTRONOMY"
+    config:
+      lat: null
+      lon: null
+
+  - module: "openmeteo"
+    title: "AIR QUALITY (Global)"
+    config:
+      lat: null
+      lon: null
+
+  - module: "breatheoss"
+    title: "AIR QUALITY (Jammu & Kashmir)"
+    config:
+      city: "Srinagar" # e.g. Srinagar, Jammu_City, Anantnag_City
+
+  - module: "news"
+    title: "TECH FEEDS"
+    feeds:
+      - feed: "techcrunch"
+        count: 1
+      - feed: "theverge"
+        count: 1
+
+  - module: "hacker_news"
+    title: "HACKER NEWS"
+    config:
+      count: 3
+
+  - module: "github_trending"
+    title: "GITHUB TRENDING"
+    config:
+      count: 3
+      language: "python" # e.g. python, javascript, go
+
+  - module: "exchange_rate"
+    title: "FOREX"
+    config:
+      base_currency: "USD"
+      target_currency: "EUR"
+
+  - module: "markets"
+    title: "STOCK MARKET"
+    config:
+      symbols: ["AAPL", "MSFT", "NVDA"]
+
+  - module: "crypto"
+    title: "CRYPTOCURRENCY"
+    config:
+      tokens: ["bitcoin", "ethereum", "solana"]
+
+  - module: "commodities"
+    title: "COMMODITIES"
+    config:
+      symbols: ["GC=F", "CL=F", "BZ=F"] # Gold, Crude Oil, Brent
+
+  - module: "actual"
+    title: "BANK BALANCES (Actual Budget)"
+    config:
+      main_account_match: "Main Bank Name"
+
+  - module: "calendar"
+    title: "CALENDAR"
+    config:
+      holidays_file: "holidays.json"
+
+  - module: "system"
+    title: "SERVER PERFORMANCE"
+    config:
+      disks:
+        - path: "/"
+          label: "Root"
+
+  - module: "ha"
+    title: "HOME ASSISTANT"
+    config:
+      entities:
+        - entity_id: "sensor.processor_temperature"
+          label: "CPU Temp"
+        - entity_id: "sensor.processor_use"
+          label: "CPU Usage"
+
+  - module: "word_of_the_day"
+    title: "WORD OF THE DAY"
+
+  - module: "daily_joke"
+    title: "DAILY JOKE"
+    
+  - module: "fact_of_the_day"
+    title: "FACT OF THE DAY"
+
+  - module: "trending"
+    title: "TRENDING (Global)"
+    config:
+      country: "US"
+      count: 5
+
+  - module: "shower_thoughts"
+    title: "SHOWER THOUGHTS"
+    config:
+      count: 3
+
+
+  - module: "email_inbox"
+    title: "RECENT EMAILS"
+    config:
+      count: 3
+
+  - module: "quotes"
+    config:
+      quotes_file: "quotes.json"

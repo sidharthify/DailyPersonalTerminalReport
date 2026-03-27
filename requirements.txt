@@ -1,0 +1,8 @@
+requests
+reportlab
+pycups
+google-play-scraper
+python-dotenv
+actualpy
+PyYAML
+qrcode[pil]
