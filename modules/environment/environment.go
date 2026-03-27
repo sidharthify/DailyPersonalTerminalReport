@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -178,14 +179,26 @@ type BreatheOSS struct{}
 func (BreatheOSS) GetData(cfg map[string]any) []string {
 	city := strOrDefault(cfg, "city", "Srinagar")
 
-	url := fmt.Sprintf("https://breatheoss.com/api/aqi?city=%s", city)
+	path := strings.ToLower(city)
+	if path == "jammu" {
+		path = "jammu_city"
+	}
+
+	url := fmt.Sprintf("https://api.breatheoss.app/aqi/%s", path)
 	var data map[string]any
 	if err := getJSON(url, &data); err != nil {
-		return []string{fmt.Sprintf("BreatheOSS (%s): %s", city, err.Error())}
+		return []string{fmt.Sprintf("%s — AQI: Currently Unavailable", city)}
 	}
 
 	aqi := fmtNum(data["aqi"])
-	pm25 := fmtNum(data["pm2_5"])
+
+	pm25 := "N/A"
+	if conc, ok := data["concentrations_raw_ugm3"].(map[string]any); ok {
+		pm25 = fmtNum(conc["pm2_5"])
+	} else {
+		pm25 = fmtNum(data["pm2_5"]) // fallback
+	}
+
 	status := aqiStatus(data["aqi"])
 
 	return []string{

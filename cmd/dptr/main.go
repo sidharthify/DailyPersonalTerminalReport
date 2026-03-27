@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/sidharthify/dptr/internal/config"
 	"github.com/sidharthify/dptr/internal/renderer"
@@ -74,6 +76,8 @@ func main() {
 
 	sections, quote := runner.RunModules(cfg, projectDir)
 
+	fmt.Print("\033[?1049h\033[H")
+
 	renderer.RenderReport(
 		cfg.User.Name,
 		cfg.User.Greeting,
@@ -81,8 +85,16 @@ func main() {
 		quote,
 	)
 
-	fmt.Print("\nPress ENTER to close...")
-	fmt.Scanln()
+	fmt.Print("\n  Type !q to exit: ")
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		if strings.TrimSpace(scanner.Text()) == "!q" {
+			break
+		}
+		fmt.Print("\033[1A\033[2K  Type !q to exit: ")
+	}
+
+	fmt.Print("\033[?1049l")
 }
 
 func openInTerminal(term string, originalArgs []string) {
@@ -120,7 +132,7 @@ func openInTerminal(term string, originalArgs []string) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
+	if err := cmd.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "dptr: could not open terminal %q: %v — rendering inline\n", term, err)
 	}
 }
