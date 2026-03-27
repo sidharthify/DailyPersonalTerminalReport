@@ -124,7 +124,7 @@ The `quotes` module is special. Instead of appearing in the report body, its out
 ### 1. Clone and Install
 
 ```bash
-git clone <repo-url> && cd DPPR
+git clone https://github.com/FlashWreck/DPPR && cd DPPR
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
