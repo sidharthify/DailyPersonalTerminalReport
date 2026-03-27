@@ -44,6 +44,34 @@ go build ./cmd/dptr
 
 To have DPTR automatically show up when you wake up and log into your PC:
 
+### Method 1: NixOS (Using Home Manager)
+
+If you use Nix and `home-manager`, you don't need the bash installer. You can declare the systemd user service completely declaratively in your `home.nix`:
+
+```nix
+systemd.user.services.dptr = {
+  Unit = {
+    Description = "Daily Personal Terminal Report";
+    After = [ "graphical-session.target" ];
+    PartOf = [ "graphical-session.target" ];
+  };
+  Install = {
+    WantedBy = [ "graphical-session.target" ];
+  };
+  Service = {
+    Type = "oneshot";
+    # Make sure pkgs.dptr is the package output from the flake!
+    ExecStart = "${pkgs.dptr}/bin/dptr --config %h/.config/dptr/config.yaml --terminal";
+    TimeoutStartSec = 120;
+  };
+};
+```
+*Note: You still need to manually copy `config.template.yaml` to `~/.config/dptr/config.yaml` once (or template it via home-manager) so DPTR knows your preferences!*
+
+### Method 2: Standard Linux Installer
+
+Run the included install script:
+
 1. Copy the reference config:
    ```bash
    cp config.template.yaml config.yaml
@@ -55,7 +83,7 @@ To have DPTR automatically show up when you wake up and log into your PC:
    ./install/install.sh
    ```
 
-The installer builds the binary, places it in `~/.local/bin/dptr`, copies your config to `~/.config/dptr/config.yaml`, and enables a systemd user service (`dptr.service`) that triggers on graphical login.
+The installer builds the binary, places it in `~/.local/bin/dptr`, copies your config to `~/.config/dptr/config.yaml`, and directly creates and enables a local systemd user service (`dptr.service`) that triggers on graphical login.
 
 ## Your First Run
 
