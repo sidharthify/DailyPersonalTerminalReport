@@ -22,15 +22,21 @@ func main() {
 	flag.Parse()
 
 	if !filepath.IsAbs(*configPath) {
-		if _, err := os.Stat(*configPath); err != nil && os.IsNotExist(err) {
-			home, _ := os.UserHomeDir()
-			defaultCfg := filepath.Join(home, ".config", "dptr", "config.yaml")
+		home, _ := os.UserHomeDir()
+		defaultCfg := filepath.Join(home, ".config", "dptr", "config.yaml")
 
-			if _, err := os.Stat(defaultCfg); err == nil {
-				*configPath = defaultCfg
+		if _, err := os.Stat(*configPath); err == nil {
+			// keep *configPath
+		} else if _, err := os.Stat(defaultCfg); err == nil {
+			*configPath = defaultCfg
+		} else {
+			exe, _ := os.Executable()
+			exeCfg := filepath.Join(filepath.Dir(exe), *configPath)
+			if _, err := os.Stat(exeCfg); err == nil {
+				*configPath = exeCfg
 			} else {
-				exe, _ := os.Executable()
-				*configPath = filepath.Join(filepath.Dir(exe), *configPath)
+				// Default to ~/.config/... (so the error message is helpful)
+				*configPath = defaultCfg
 			}
 		}
 	}
