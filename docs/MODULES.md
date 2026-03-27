@@ -86,3 +86,7 @@ Every module in DPPR is specialized for a single type of data. Detailed configur
 - **config**: `entities` (list of `entity_id` and `label`).
 - **Env**: Requires `HA_URL`, `HA_ACCESS_TOKEN`.
 - **Output**: Live states of your smart home sensors.
+
+### essentials (Report Review)
+- **config**: `show_review` (boolean, default `true`).
+- **Output**: A confirmation message: "Report successfully compiled with latest live data."
