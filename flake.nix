@@ -18,7 +18,7 @@
           src = ./.;
 
           # Update the vendorHash if go.mod/go.sum changes
-          vendorHash = "sha256-mPF9CHAIhFuqrUsVdZHrKH+nBkgO5VZhoBLXI7CBHSQ=";
+          vendorHash = null;
 
           meta = with pkgs.lib; {
             description = "Daily Personal Terminal Report - A terminal briefing system";
